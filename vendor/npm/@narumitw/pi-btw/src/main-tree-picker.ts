@@ -1,0 +1,401 @@
+import {
+  copyToClipboard,
+  type ExtensionAPI,
+  type ExtensionCommandContext,
+  type SessionEntry,
+  type SessionTreeNode,
+  TreeSelectorComponent,
+} from "@earendil-works/pi-coding-agent";
+import { type Component, type Focusable, Key, matchesKey } from "@earendil-works/pi-tui";
+import { showBtwCustomPreservingEditor } from "./menu.js";
+import { sanitizeSingleLine } from "./text.js";
+
+export type MainEntryPickResult = { kind: "selected"; entryId: string } | { kind: "back" } | { kind: "closed" };
+
+export interface MainThreadTreeSelector extends Component, Focusable {
+  onCopy?: (text: string | undefined) => void;
+  setViewLabel?(entryId: string, label: string | undefined, labelTimestamp?: string): void;
+  dispose?(): void;
+}
+
+export interface MainThreadTreeSelectorOptions {
+  tree: SessionTreeNode[];
+  currentLeafId: string | null;
+  terminalRows: number;
+  onSelect: (entryId: string) => void;
+  onCancel: () => void;
+  onCopy: (entryId: string | undefined, displayText: string | undefined) => void;
+  onLabelChange: (entryId: string, label: string | undefined) => void;
+}
+
+export interface MainThreadTreePickerDependencies {
+  createSelector?: (options: MainThreadTreeSelectorOptions) => MainThreadTreeSelector;
+  copyToClipboard?: (text: string, signal: AbortSignal) => Promise<void>;
+}
+
+class MainThreadTreePickerComponent implements Component, Focusable {
+  constructor(
+    private readonly selector: MainThreadTreeSelector,
+    private readonly onClose: () => void,
+  ) {}
+
+  get focused(): boolean {
+    return this.selector.focused;
+  }
+
+  set focused(value: boolean) {
+    this.selector.focused = value;
+  }
+
+  get wantsKeyRelease(): boolean | undefined {
+    return this.selector.wantsKeyRelease;
+  }
+
+  render(width: number): string[] {
+    return this.selector.render(width);
+  }
+
+  handleInput(data: string): void {
+    if (matchesKey(data, Key.ctrl("c"))) {
+      this.onClose();
+      return;
+    }
+    this.selector.handleInput?.(data);
+  }
+
+  invalidate(): void {
+    this.selector.invalidate();
+  }
+
+  dispose(): void {
+    this.selector.dispose?.();
+    this.onClose();
+  }
+}
+
+export async function pickMainEntry(
+  pi: ExtensionAPI,
+  ctx: ExtensionCommandContext,
+  dependencies: MainThreadTreePickerDependencies = {},
+): Promise<MainEntryPickResult> {
+  let rawTree: SessionTreeNode[];
+  let currentLeafId: string | null;
+  try {
+    rawTree = ctx.sessionManager.getTree();
+    currentLeafId = ctx.sessionManager.getLeafId();
+  } catch {
+    return { kind: "closed" };
+  }
+
+  if (rawTree.length === 0) {
+    notifySafely(ctx, "No main-thread entries are available", "warning");
+    return { kind: "back" };
+  }
+
+  const { tree, rawCopyText, savedLabels } = prepareTreeSnapshot(rawTree);
+  const createSelector = dependencies.createSelector ?? createNativeTreeSelector;
+  const copy = dependencies.copyToClipboard ?? copyText;
+  const copyControllers = new Set<AbortController>();
+  const copyTasks = new Set<Promise<void>>();
+  const abortCopies = () => {
+    for (const controller of copyControllers) {
+      controller.abort(new Error("The main-thread tree picker closed"));
+    }
+  };
+  const result = await showBtwCustomPreservingEditor<MainEntryPickResult>(ctx, (tui, _theme, _keybindings, done) => {
+    let settled = false;
+    let selector: MainThreadTreeSelector | undefined;
+    const finish = (value: MainEntryPickResult) => {
+      if (settled) return;
+      settled = true;
+      abortCopies();
+      done(value);
+    };
+    const onCopy = (entryId: string | undefined, displayText: string | undefined) => {
+      if (settled) return;
+      let text: string | undefined;
+      try {
+        const source = entryId ? rawCopyText.get(entryId) : displayText;
+        text = typeof source === "string" ? source : source?.join("");
+      } catch (error: unknown) {
+        notifySafely(ctx, `Could not copy selected message: ${formatError(error)}`, "error");
+        return;
+      }
+      if (!text) {
+        notifySafely(ctx, "Selected entry has no text to copy", "warning");
+        return;
+      }
+      const controller = new AbortController();
+      copyControllers.add(controller);
+      let operation: Promise<void>;
+      try {
+        operation = copy(text, controller.signal);
+      } catch (error: unknown) {
+        operation = Promise.reject(error);
+      }
+      let task!: Promise<void>;
+      task = operation
+        .then(() => {
+          if (!settled) notifySafely(ctx, "Copied selected message", "info");
+        })
+        .catch((error: unknown) => {
+          if (!settled && !controller.signal.aborted) {
+            notifySafely(ctx, `Could not copy selected message: ${formatError(error)}`, "error");
+          }
+        })
+        .finally(() => {
+          copyControllers.delete(controller);
+          copyTasks.delete(task);
+        });
+      copyTasks.add(task);
+    };
+    const restoreLabel = (entryId: string) => {
+      const previous = savedLabels.get(entryId);
+      selector?.setViewLabel?.(entryId, previous?.label, previous?.labelTimestamp);
+      tui.requestRender();
+    };
+    const onLabelChange = (entryId: string, label: string | undefined) => {
+      if (settled) return;
+      try {
+        if (!ctx.sessionManager.getEntry(entryId)) {
+          restoreLabel(entryId);
+          notifySafely(ctx, "The selected main-thread entry is no longer available", "warning");
+          return;
+        }
+        const persistedLabel = label === undefined ? undefined : sanitizeSingleLine(label);
+        pi.setLabel(entryId, persistedLabel);
+        if (persistedLabel === undefined) savedLabels.delete(entryId);
+        else savedLabels.set(entryId, { label: persistedLabel });
+        selector?.setViewLabel?.(entryId, persistedLabel);
+        tui.requestRender();
+      } catch (error: unknown) {
+        restoreLabel(entryId);
+        notifySafely(ctx, `Could not update tree label: ${formatError(error)}`, "error");
+      }
+    };
+    selector = createSelector({
+      tree,
+      currentLeafId,
+      terminalRows: tui.terminal.rows,
+      onSelect: (entryId) => finish({ kind: "selected", entryId }),
+      onCancel: () => finish({ kind: "back" }),
+      onCopy,
+      onLabelChange,
+    });
+    return new MainThreadTreePickerComponent(selector, () => finish({ kind: "closed" }));
+  });
+  abortCopies();
+  await Promise.allSettled([...copyTasks]);
+
+  return result ?? { kind: "closed" };
+}
+
+function createNativeTreeSelector(options: MainThreadTreeSelectorOptions): MainThreadTreeSelector {
+  const selector = new TreeSelectorComponent(
+    options.tree,
+    options.currentLeafId,
+    options.terminalRows,
+    options.onSelect,
+    options.onCancel,
+    options.onLabelChange,
+  );
+  selector.onCopy = (displayText) => options.onCopy(selector.getTreeList().getSelectedNode()?.entry.id, displayText);
+  const result = selector as MainThreadTreeSelector;
+  result.setViewLabel = (entryId, label, labelTimestamp) =>
+    selector.getTreeList().updateNodeLabel(entryId, label, labelTimestamp);
+  return result;
+}
+
+type RawCopySource = string | readonly string[];
+
+/** @internal Package-local snapshot test boundary; not an extension entrypoint. */
+export function prepareTreeSnapshot(rawTree: readonly SessionTreeNode[]): {
+  tree: SessionTreeNode[];
+  rawCopyText: Map<string, RawCopySource>;
+  savedLabels: Map<string, SavedLabel>;
+} {
+  const tree: SessionTreeNode[] = [];
+  const rawCopyText = new Map<string, RawCopySource>();
+  const savedLabels = new Map<string, SavedLabel>();
+  // Keep traversal state on the heap: valid session histories can be arbitrarily deep.
+  const stack = [{ source: rawTree, target: tree, index: 0 }];
+  while (stack.length > 0) {
+    const frame = stack[stack.length - 1];
+    if (frame.index === frame.source.length) {
+      stack.pop();
+      continue;
+    }
+    const node = frame.source[frame.index++];
+    const label = node.label === undefined ? undefined : sanitizeSingleLine(node.label);
+    const labelTimestamp = node.labelTimestamp === undefined ? undefined : sanitizeSingleLine(node.labelTimestamp);
+    const displayNode: SessionTreeNode = {
+      entry: sanitizeEntryForDisplay(node.entry),
+      children: [],
+    };
+    if (label !== undefined) displayNode.label = label;
+    if (labelTimestamp !== undefined) displayNode.labelTimestamp = labelTimestamp;
+    frame.target.push(displayNode);
+    const source = captureRawCopySource(node.entry);
+    if (source !== undefined) rawCopyText.set(node.entry.id, source);
+    if (label !== undefined || labelTimestamp !== undefined) {
+      savedLabels.set(node.entry.id, { label, labelTimestamp });
+    }
+    if (node.children.length > 0) {
+      stack.push({ source: node.children, target: displayNode.children, index: 0 });
+    }
+  }
+  return { tree, rawCopyText, savedLabels };
+}
+
+function sanitizeEntryForDisplay(entry: SessionEntry): SessionEntry {
+  switch (entry.type) {
+    case "message": {
+      const message = { ...entry.message } as Record<string, unknown>;
+      if ("content" in entry.message) message.content = sanitizeDisplayContent(entry.message.content);
+      for (const key of ["role", "errorMessage", "command", "toolName"] as const) {
+        const value = message[key];
+        if (typeof value === "string") message[key] = sanitizeSingleLine(value);
+      }
+      return { ...entry, message } as unknown as SessionEntry;
+    }
+    case "custom_message":
+      return {
+        ...entry,
+        customType: sanitizeSingleLine(entry.customType),
+        content: sanitizeDisplayContent(entry.content) as typeof entry.content,
+      };
+    case "compaction":
+      return { ...entry, summary: sanitizeSingleLine(entry.summary) };
+    case "branch_summary":
+      return { ...entry, summary: sanitizeSingleLine(entry.summary) };
+    case "model_change":
+      return {
+        ...entry,
+        provider: sanitizeSingleLine(entry.provider),
+        modelId: sanitizeSingleLine(entry.modelId),
+      };
+    case "thinking_level_change":
+      return { ...entry, thinkingLevel: sanitizeSingleLine(entry.thinkingLevel) };
+    case "custom":
+      return { ...entry, customType: sanitizeSingleLine(entry.customType) };
+    case "context_edit":
+      return { ...entry, targetId: sanitizeSingleLine(entry.targetId) };
+    case "label":
+      return {
+        ...entry,
+        label: entry.label === undefined ? undefined : sanitizeSingleLine(entry.label),
+      };
+    case "session_info":
+      return {
+        ...entry,
+        name: entry.name === undefined ? undefined : sanitizeSingleLine(entry.name),
+      };
+    case "usage":
+      return {
+        ...entry,
+        kind: sanitizeSingleLine(entry.kind),
+        provider: sanitizeSingleLine(entry.provider),
+        model: sanitizeSingleLine(entry.model),
+        note: entry.note === undefined ? undefined : sanitizeSingleLine(entry.note),
+      };
+  }
+}
+
+function sanitizeDisplayContent(content: unknown): unknown {
+  if (typeof content === "string") return sanitizeSingleLine(content);
+  if (!Array.isArray(content)) return content;
+  return content.map((block) => {
+    if (block === null || typeof block !== "object" || !("type" in block)) return block;
+    if (block.type === "text" && "text" in block && typeof block.text === "string") {
+      return { ...block, text: sanitizeSingleLine(block.text) };
+    }
+    if (block.type === "toolCall") {
+      const copy = { ...block } as Record<string, unknown>;
+      if (typeof copy.name === "string") copy.name = sanitizeSingleLine(copy.name);
+      copy.arguments = sanitizeToolArguments(copy.arguments, new WeakMap());
+      return copy;
+    }
+    return block;
+  });
+}
+
+function sanitizeToolArguments(value: unknown, seen: WeakMap<object, unknown>): unknown {
+  if (typeof value === "string") return sanitizeSingleLine(value);
+  if (value === null || typeof value !== "object") return value;
+  const existing = seen.get(value);
+  if (existing !== undefined) return existing;
+  if (Array.isArray(value)) {
+    const result: unknown[] = [];
+    seen.set(value, result);
+    for (const item of value) result.push(sanitizeToolArguments(item, seen));
+    return result;
+  }
+  const result: Record<string, unknown> = {};
+  seen.set(value, result);
+  for (const [key, item] of Object.entries(value)) {
+    result[key] = sanitizeToolArguments(item, seen);
+  }
+  return result;
+}
+
+function captureRawCopySource(entry: SessionEntry): RawCopySource | undefined {
+  let source: RawCopySource | undefined;
+  if (entry.type === "message") {
+    if (entry.message.role === "bashExecution") source = entry.message.command;
+    else if ("content" in entry.message) {
+      source = captureRawText(entry.message.content);
+      const empty = typeof source === "string" ? source.length === 0 : source.every((part) => part.length === 0);
+      if (empty && entry.message.role === "assistant") source = entry.message.errorMessage;
+    }
+  } else if (entry.type === "custom_message") source = captureRawText(entry.content);
+  else if (entry.type === "compaction" || entry.type === "branch_summary") source = entry.summary;
+  if (typeof source === "string") return /\S/u.test(source) ? source : undefined;
+  return source?.some((part) => /\S/u.test(part)) ? source : undefined;
+}
+
+function captureRawText(content: unknown): RawCopySource {
+  if (typeof content === "string") return content;
+  if (!Array.isArray(content)) return "";
+  // Retain immutable strings, not live blocks or joined copies of every message.
+  const parts: string[] = [];
+  for (const block of content) {
+    if (
+      block !== null &&
+      typeof block === "object" &&
+      "type" in block &&
+      block.type === "text" &&
+      "text" in block &&
+      typeof block.text === "string"
+    ) {
+      parts.push(block.text);
+    }
+  }
+  return parts.length === 1 ? parts[0] : parts;
+}
+
+interface SavedLabel {
+  label: string | undefined;
+  labelTimestamp?: string;
+}
+
+async function copyText(text: string, signal: AbortSignal): Promise<void> {
+  signal.throwIfAborted();
+  await copyToClipboard(text);
+  signal.throwIfAborted();
+}
+
+function notifySafely(
+  ctx: ExtensionCommandContext,
+  message: string,
+  level: Parameters<ExtensionCommandContext["ui"]["notify"]>[1],
+): void {
+  try {
+    ctx.ui.notify(sanitizeSingleLine(message), level);
+  } catch {
+    // The command context may have been replaced while the selector was open.
+  }
+}
+
+function formatError(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}

@@ -1,0 +1,32 @@
+{
+  "theme": "dark",
+  "defaultTools": ["+codemode"],
+  "codemode": { "mode": "on" },
+  "defaultProvider": "xai",
+  "defaultModel": "grok-4.6",
+  "defaultThinkingLevel": "high",
+  "modelThinkingLevels": {
+    "xai/grok-4.6": "high"
+  },
+  "doubleEscapeAction": "tree",
+  "hideThinkingBlock": true,
+  "showHardwareCursor": true,
+  "treeFilterMode": "all",
+  "defaultProjectTrust": "ask",
+  "workspaceHistory": {
+    "enabled": true
+  },
+  "observational-memory": {
+    "compactAfterTokensMode": "ratio",
+    "compactAfterTokensRatio": 0.5,
+    "observeAfterTokens": 10000,
+    "reflectAfterTokens": 20000,
+    "showWorkerNotifications": false,
+    "passive": false,
+    "model": {
+      "provider": "xai",
+      "id": "grok-4.6",
+      "thinking": "low"
+    }
+  }
+}

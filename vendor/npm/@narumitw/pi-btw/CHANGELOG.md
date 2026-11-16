@@ -1,0 +1,286 @@
+# @narumitw/pi-btw
+
+## 0.63.8
+
+### Patch Changes
+
+- Updated dependencies [cf7b63d]
+  - @narumitw/pi-tui-kit@0.70.0
+
+## 0.63.7
+
+### Patch Changes
+
+- b2b91fa: Reduce main-thread tree picker allocations by joining raw text fragments only when copying and storing saved labels only when needed.
+
+## 0.63.6
+
+### Patch Changes
+
+- aca87cf: Fix call stack overflows when opening the main-thread tree picker for deep session histories.
+
+## 0.63.5
+
+### Patch Changes
+
+- e46b610: Reduce Pi startup work by loading unused BTW and Codex Imagegen UI on first use. Preserve command registration, settings, tool exposure, and session cleanup.
+- Updated dependencies [4f79c28]
+  - @narumitw/pi-tui-kit@0.69.1
+
+## 0.63.4
+
+### Patch Changes
+
+- e484010: Include the existing package-root CHANGELOG.md in extension tarballs so Pi can show native update notices. Keep Changesets version headings and Pi's first-observation and collapseChangelog behavior unchanged.
+- Updated dependencies [54f2700]
+- Updated dependencies [6c76ef1]
+  - @narumitw/pi-tui-kit@0.69.0
+
+## 0.63.3
+
+### Patch Changes
+
+- bab4b67: Allow main-pane submissions while a split workspace remains open, including when BTW starts while the main agent is idle. Keep the complete workspace task session-owned, prevent overlapping BTW flows, and preserve cancellation, shutdown draining, and error reporting.
+
+## 0.63.2
+
+### Patch Changes
+
+- Updated dependencies [a21d39b]
+- Updated dependencies [f68aa54]
+- Updated dependencies [b062d21]
+  - @narumitw/pi-tui-kit@0.68.0
+
+## 0.63.1
+
+### Patch Changes
+
+- 57eeae7: Add the opt-in `createFullscreenHandoff()` resource and native test harness. Share terminal entry/exit drain, cancellation-safe restoration, keyboard-protocol recovery, owned overlay handling, and cleanup errors through public Pi TUI APIs. Keep ordinary Kit interactions unchanged.
+  
+  Use the resource in Starship's configuration chat and BTW's multi-screen workspace. Keep each extension's input policy, layouts, domain state, permissions, and persistence local. BTW now waits for native input drain before entry. Changesets raises both consumer floors to the Kit API release; dependent publication requires its exact registry artifact.
+- Updated dependencies [57eeae7]
+  - @narumitw/pi-tui-kit@0.67.0
+
+## 0.63.0
+
+### Minor Changes
+
+- ec9e092: Add manual preview and import of new main-thread context into retained side threads. Keep imported updates in conversation order, preserve earlier request prefixes, and reject incompatible branch or context-boundary changes. Add a configurable import shortcut with F9–F11 fallbacks.
+
+## 0.62.0
+
+### Minor Changes
+
+- 7d15a96: Align the BTW workspace with native Pi input, prompt navigation, scrollbars, and cursor-first dock layout. Add a conflict-checked keyboard shortcut to switch panes. Keep effective key hints, native mouse editing, draft safeguards, and queue timing clear. Cancel and drain session-owned work on replacement and shutdown, and contain renderer cleanup and clipboard failures.
+
+### Patch Changes
+
+- d60fa4e: Bring the BTW conversation appearance closer to native Pi. Move side identity, model, thinking, focus, and concise key hints below the editor; match native working borders and message spacing while retaining cursor-first short layouts. Keep tools absent and preserve existing input, queue, lifecycle, and draft-safety behavior.
+- Updated dependencies [077137a]
+- Updated dependencies [9f80b89]
+- Updated dependencies [efc474c]
+  - @narumitw/pi-tui-kit@0.66.0
+
+## 0.61.2
+
+### Patch Changes
+
+- 033dead: Reject unknown and duplicate modifiers when selecting the fullscreen jump-to-latest key hint. Match Pi's strict key parser so the hint names a usable binding.
+
+## 0.61.1
+
+### Patch Changes
+
+- c073bc0: Fix the main-thread tree picker on Pi 0.87 sessions containing context edits.
+- 81be3f7: Send a per-thread routing `sessionId` with side requests so provider overrides that require one, such as subscription attribution transports, no longer reject `/btw`; the main session ID is still used only for OpenCode headers.
+
+## 0.61.0
+
+### Minor Changes
+
+- 865f1d3: Make the split-pane divider draggable and remember the side-thread width.
+- 129f324: Add configurable fullscreen, side-thread-left, and side-thread-right workspaces with Pi's live main-thread view and click-to-focus input.
+
+### Patch Changes
+
+- 2bacc07: Use one muted column for the split-pane divider.
+
+## 0.60.3
+
+### Patch Changes
+
+- 34b57b2: Route side-thread requests through Pi's authenticated `modelRegistry.streamSimple()` path so extension-registered providers, OAuth endpoint overrides, headers, and environment credentials are resolved by Pi at request time.
+
+## 0.60.2
+
+### Patch Changes
+
+- 8abd5b7: Keep generated extension runtime graphs inside Pi's Jiti-loaded TypeScript path to avoid duplicate peer-runtime evaluation during startup. Add measured generated runtimes for Context Management, Herdr, and TypeSafe Search.
+
+## 0.60.1
+
+### Patch Changes
+
+- 67a3049: Adapt provider, transcript, usage, deferred-tool, and telemetry behavior to Pi's current runtime contracts, including accurate cache-warming accounting and exclusion from ordinary generation traces.
+
+## 0.60.0
+
+### Minor Changes
+
+- c4d403b: Add a searchable model picker to `/btw` Settings with scoped available models, same as the main thread reset, and model-aware thinking choices.
+
+## 0.59.0
+
+### Minor Changes
+
+- 022ba82: Render supported Mermaid fences as width-safe, themed Unicode diagrams in side-thread transcripts, with readable source fallbacks for malformed, unsupported, or oversized diagrams.
+
+### Patch Changes
+
+- ddaccd2: Complete `/btw` fullscreen cancellation by forwarding upstream aborts, closing mounted composers, restoring the parent TUI, and stopping lazy Mermaid transcript preparation when cancelled.
+
+## 0.58.1
+
+### Patch Changes
+
+- ad0fbc0: Honor the API base URL returned by Pi's authentication resolver for both inherited and explicitly configured side-thread models. This fixes misdirected requests for GitHub Copilot accounts that use a different endpoint from the provider default, without changing the main session's model.
+
+## 0.58.0
+
+### Minor Changes
+
+- 609f6a8: Add BTW-only exit, thinking-cycle, and bring-to-main keybindings in `/btw` → Settings, with conflict validation and per-action reset. Preserve Ctrl+C as hard cancel and keep pasted input out of shortcut handling.
+
+### Patch Changes
+
+- Updated dependencies [317f7bd]
+  - @narumitw/pi-tui-kit@0.61.0
+
+## 0.57.1
+
+### Patch Changes
+
+- ee07eb8: Forward Pi session headers to OpenCode providers for side-thread requests.
+
+## 0.57.0
+
+### Minor Changes
+
+- f24a5b0: Add a themed, clickable Jump to latest control that honors Pi's effective fullscreen bottom keybinding.
+
+## 0.56.2
+
+### Patch Changes
+
+- c0fe03e: Wait for Pi's terminal input drain before restoring the parent fullscreen TUI after Ctrl+C.
+
+## 0.56.1
+
+### Patch Changes
+
+- 612df75: Defer Ctrl+C terminal restoration until input dispatch finishes so Windows fullscreen sessions redraw and scroll correctly.
+
+## 0.56.0
+
+### Minor Changes
+
+- f41734c: Add configurable manual fullscreen selection copying through Pi's effective copy keybinding, with paste-safe input and compatibility checks.
+
+## 0.55.4
+
+### Patch Changes
+
+- Updated dependencies [40182e5]
+  - @narumitw/pi-tui-kit@0.59.0
+
+## 0.55.3
+
+### Patch Changes
+
+- 4fb170b: Restore main-editor input immediately after Ctrl+C exits a dedicated side thread.
+- 2250f3c: Close the active side flow when Ctrl+C restores the main editor while transcript search has focus.
+- Updated dependencies [78276b0]
+- Updated dependencies [dc9802e]
+  - @narumitw/pi-tui-kit@0.58.1
+
+## 0.55.2
+
+### Patch Changes
+
+- Updated dependencies [b9eba3a]
+  - @narumitw/pi-tui-kit@0.58.0
+
+## 0.55.1
+
+### Patch Changes
+
+- Updated dependencies [6574232]
+- Updated dependencies [cddc265]
+  - @narumitw/pi-tui-kit@0.57.0
+
+## 0.55.0
+
+### Minor Changes
+
+- 79bc155: Add themed fullscreen transcript search and verified host clipboard feedback for mouse selections.
+
+## 0.54.2
+
+### Patch Changes
+
+- 30bc076: Load each extension from a generated TypeScript runtime to reduce Jiti package startup work while preserving existing first-use boundaries.
+
+## 0.54.1
+
+### Patch Changes
+
+- Updated dependencies [8bead31]
+  - @narumitw/pi-tui-kit@0.56.0
+
+## 0.54.0
+
+### Minor Changes
+
+- b5c0682: Add native mouse-wheel and trackpad scrolling to side-thread transcript history.
+
+## 0.53.0
+
+### Minor Changes
+
+- d97edfd: Add a native main-session tree picker that starts a fresh side thread from any selected branch without switching the main conversation.
+
+### Patch Changes
+
+- Updated dependencies [3176172]
+  - @narumitw/pi-tui-kit@0.55.0
+
+## 0.52.0
+
+### Minor Changes
+
+- f3d76af: Add a Same as main thread thinking option that starts new side threads from the current main thread level while keeping shortcut changes local.
+
+## 0.51.0
+
+### Minor Changes
+
+- 69e8485: Add local fuzzy search to the in-memory Resume thread choice.
+
+## 0.50.0
+
+### Minor Changes
+
+- be8d492: Add an in-memory Resume picker to `/btw` so the current Pi session can continue any non-empty side thread by its first question while `/btw <question>` remains a fresh-thread fast path.
+
+## 0.49.7
+
+### Patch Changes
+
+- 3f33860: Run side threads in a dedicated full-screen TUI so mouse-drag copying stays stable while the main agent continues producing output in the background.
+- 2a2c9c1: Queue Pi-style steering questions while a side-thread answer is running, process them one at a time without touching the main conversation, and report malformed side-model responses without hanging the side UI.
+
+## 0.49.6
+
+### Patch Changes
+
+- a4b44ee: Route side-question completions through Pi's effective runtime provider so custom provider APIs work.

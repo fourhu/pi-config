@@ -1,0 +1,9 @@
+pi-thinkrail-tui
+Copyright 2026 fourhu
+
+This product includes adapted workflow skills and prompt templates from
+ThinkRail (https://github.com/JetBrains/thinkrail), Copyright JetBrains,
+licensed under the Apache License, Version 2.0.
+
+It depends at runtime on the published packages @thinkrail/pi-visualize and
+@thinkrail/pi-ask-user-question (Apache-2.0).

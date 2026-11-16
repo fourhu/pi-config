@@ -1,0 +1,19 @@
+{
+  "subagents": {
+    "prompt": "Subagent host on this machine? rex and herdr are mutually exclusive.",
+    "options": {
+      "rex": {
+        "label": "rex",
+        "packages": ["git:github.com/fourhu/pi-rex-subagents"]
+      },
+      "herdr": {
+        "label": "herdr",
+        "packages": ["git:github.com/fourhu/pi-herdr-subagents"]
+      },
+      "none": {
+        "label": "neither",
+        "packages": []
+      }
+    }
+  }
+}

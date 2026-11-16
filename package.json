@@ -1,0 +1,8 @@
+{
+  "name": "pi-config",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/*.test.ts packages/pi-thinkrail-tui/test/*.test.ts"
+  }
+}

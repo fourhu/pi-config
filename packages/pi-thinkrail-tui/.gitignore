@@ -1,0 +1,4 @@
+node_modules/
+.pi/context/
+*.tgz
+.DS_Store

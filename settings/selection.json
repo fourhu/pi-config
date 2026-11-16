@@ -1,0 +1,18 @@
+{
+  "modules": {
+    "skills": true,
+    "agentsMd": true,
+    "localExtensions": true,
+    "vendorNpm": true,
+    "vendorGit": true,
+    "packages": true,
+    "thinkrailTui": true,
+    "prefs": true
+  },
+  "disabledPackages": [
+    "npm:@bacnh85/pi-review",
+    "npm:@osolmaz/pi-workflows",
+    "npm:@tifan/pi-preferred-thinking",
+    "npm:pi-rex-adapter"
+  ]
+}

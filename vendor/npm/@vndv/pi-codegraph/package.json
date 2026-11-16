@@ -1,0 +1,68 @@
+{
+  "name": "@vndv/pi-codegraph",
+  "version": "0.1.10",
+  "description": "CodeGraph tools for Pi Agent.",
+  "license": "MIT",
+  "type": "module",
+  "author": "CodeGraph contributors",
+  "homepage": "https://github.com/vndv/pi-codegraph#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vndv/pi-codegraph"
+  },
+  "bugs": {
+    "url": "https://github.com/vndv/pi-codegraph/issues"
+  },
+  "keywords": [
+    "pi-package",
+    "pi",
+    "codegraph",
+    "coding-agent",
+    "code-intelligence"
+  ],
+  "files": [
+    "extensions",
+    "README.md",
+    "LICENSE"
+  ],
+  "exports": {
+    "./extensions/codegraph": "./extensions/codegraph.ts",
+    "./extensions/codegraph.ts": "./extensions/codegraph.ts"
+  },
+  "pi": {
+    "extensions": [
+      "./extensions"
+    ]
+  },
+  "scripts": {
+    "check:readme-version": "node scripts/sync-readme-version.mjs --check",
+    "ci": "npm run typecheck && npm test && npm run compat:codegraph && npm run check:readme-version && npm pack --dry-run",
+    "compat:codegraph": "codegraph --version",
+    "local-release": "changeset version && changeset publish",
+    "publish-packages": "node -e \"const {execSync}=require('node:child_process'); const p=require('./package.json'); const spec=p.name+'@'+p.version; try { execSync('npm view '+spec+' version', {stdio:'ignore'}); console.log(spec+' already published; skipping.'); } catch { execSync('npm publish --access public --provenance --ignore-scripts', {stdio:'inherit'}); }\"",
+    "prepack": "npm run typecheck && npm test",
+    "prepublishOnly": "npm run ci",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "sync:readme-version": "node scripts/sync-readme-version.mjs",
+    "version-packages": "changeset version && npm run sync:readme-version && npm install --package-lock-only --ignore-scripts"
+  },
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "typebox": "*"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.31.0",
+    "@colbymchenry/codegraph": "^1.0.1",
+    "@earendil-works/pi-coding-agent": "^0.79.6",
+    "@types/node": "^26.0.0",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.7"
+  }
+}

@@ -1,0 +1,13 @@
+node_modules/
+.pi/context/
+*.tgz
+.DS_Store
+__pycache__/
+*.pyc
+auth.json
+sessions/
+memory/
+.env
+trust.json
+packages/*/node_modules/
+settings/local.json
