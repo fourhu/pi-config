@@ -6,7 +6,6 @@
     "@narumitw/pi-btw": "^0.63.8",
     "@vndv/pi-codegraph": "^0.1.10",
     "pi-autoresearch": "^1.9.0",
-    "pi-cache-graph": "^1.0.2",
     "pi-chrome": "^0.15.57",
     "pi-context-usage": "^1.0.2",
     "pi-loadout": "^0.0.35",

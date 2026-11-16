@@ -13,6 +13,7 @@
     "npm:@bacnh85/pi-review",
     "npm:@osolmaz/pi-workflows",
     "npm:@tifan/pi-preferred-thinking",
-    "npm:pi-rex-adapter"
+    "npm:pi-rex-adapter",
+    "npm:pi-cache-graph"
   ]
 }

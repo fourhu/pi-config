@@ -70,4 +70,4 @@ Skill entries in `~/.pi/agent/skills` that are symlinks into `~/.agents/skills` 
 
 See `settings/packages.json`. `visualize` and `ask-user-question` are composed by `packages/pi-thinkrail-tui` — do not `pi install` them separately.
 
-Default **disabled** (`selection.json`): `pi-review`, `pi-workflows`, `pi-preferred-thinking`, `pi-rex-adapter` (present on disk, not in settings). Remove them from `disabledPackages` to install.
+Default **disabled** (`selection.json`): leftovers `pi-review`, `pi-workflows`, `pi-preferred-thinking`, `pi-rex-adapter`; dropped `pi-cache-graph`. Remove from `disabledPackages` and add to `packages.json` to install.
